@@ -78,7 +78,6 @@ class StopwatchModeScreenState extends State<StopwatchModeScreen> {
     final milliseconds = twoDigits(
       duration.inMilliseconds.remainder(1000) ~/ 10,
     );
-    //"$hours:$minutes:$seconds.$milliseconds";
     return "${duration.inHours.remainder(60)>=1 ? "$hours:" : ""}$minutes:$seconds.$milliseconds";
   }
 
@@ -114,7 +113,6 @@ class StopwatchModeScreenState extends State<StopwatchModeScreen> {
               },
             ),
             const SizedBox(height: 40),
-            // Control Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

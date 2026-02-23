@@ -1,5 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:study_tracker/timer_menu.dart';
 
 class CountdownModeScreen extends StatefulWidget {
   const CountdownModeScreen({super.key});
@@ -9,15 +13,16 @@ class CountdownModeScreen extends StatefulWidget {
 }
 
 class CountdownScreenState extends State<CountdownModeScreen> {
+  List<TrackerItem> _trackers = []; // belongs here on the State, not the widget
+  bool _isLoading = true;
+  late final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
   Timer? _timer;
   bool _isRunning = false;
-  bool _completed = false;
   double _sliderValue = 1;
 
-  static const Duration defaultDuration = Duration(
-    minutes: 1,
-    seconds: 0,
-  );
+  TrackerItem? _selectedTracker;
+
+  static const Duration defaultDuration = Duration(minutes: 1, seconds: 0);
 
   Duration _initDuration = defaultDuration;
 
@@ -25,7 +30,21 @@ class CountdownScreenState extends State<CountdownModeScreen> {
     defaultDuration,
   );
 
-  //countdown logic
+  @override
+  void initState() {
+    super.initState();
+
+    _prefs.getString('tracker_list').then((value) {
+      setState(() {
+        if (value != null) {
+          final List decoded = jsonDecode(value);
+          _trackers = decoded.map((e) => TrackerItem.fromJson(e)).toList();
+        }
+        _isLoading = false;
+      });
+    });
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -35,22 +54,14 @@ class CountdownScreenState extends State<CountdownModeScreen> {
 
   void startCountdown() {
     if (_isRunning) return;
-
-    if (_durationNotifier.value == _sliderValue.toInt()) {
-      _initDuration = Duration(minutes: _sliderValue.toInt());
-      _durationNotifier.value = _initDuration;
-    }
-    else {
-      _initDuration = _durationNotifier.value;
-      _initDuration = Duration(minutes: _sliderValue.toInt());
-    }
+    _initDuration = Duration(minutes: _sliderValue.toInt());
+    _durationNotifier.value = _initDuration;
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_durationNotifier.value.inSeconds <= 0) {
         _timer?.cancel();
         countdownComplete();
-      }
-      else {
+      } else {
         _durationNotifier.value -= const Duration(seconds: 1);
       }
     });
@@ -62,7 +73,6 @@ class CountdownScreenState extends State<CountdownModeScreen> {
 
   void pauseCountdown() {
     _timer?.cancel();
-
     setState(() {
       _isRunning = false;
     });
@@ -72,21 +82,18 @@ class CountdownScreenState extends State<CountdownModeScreen> {
     _timer?.cancel();
     setState(() {
       _isRunning = false;
+      _sliderValue = 1;
+      _initDuration = Duration(minutes: _sliderValue.toInt());
+      _durationNotifier.value = _initDuration;
     });
-    _sliderValue = 1;
-    _initDuration = Duration(minutes: _sliderValue.toInt());
-    _durationNotifier.value = _initDuration;
-
   }
 
   void stopCountdown() {
-    {
-      pauseCountdown();
-      showDialog(
-        context: context,
-        builder: (context) => Visibility(
-          visible: _isRunning ? false : true,
-          child: AlertDialog(
+    pauseCountdown();
+    showDialog(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
             title: const Text("Are you sure you want to lose progress?"),
             content: Row(
               children: [
@@ -95,44 +102,52 @@ class CountdownScreenState extends State<CountdownModeScreen> {
                     Navigator.of(context).pop();
                     resetCountdown();
                   },
-                  child: Text("Yes"),
+                  child: const Text("Yes"),
                 ),
                 TextButton(
                   onPressed: () {
-                    startCountdown();
                     Navigator.of(context).pop();
+                    startCountdown();
                   },
-                  child: Text("No"),
+                  child: const Text("No"),
                 ),
               ],
             ),
           ),
-        ),
-      );
-    }
+    );
   }
 
-  void trackTime(){}
+  void trackTime(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(title: Text(_trackers[index].name)),
+    );
+  }
 
   void countdownComplete() {
-    {
-      pauseCountdown();
-      showDialog(
-        context: context,
-        builder: (context) => Visibility(
-          visible: _isRunning ? false : true,
-          child: AlertDialog(
-            title: const Text("Are you sure you want to lose progress?"),
+    pauseCountdown();
+    showDialog(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
+            title: const Text("Session complete!"),
             content: Row(
               children: [
-                TextButton(onPressed: () {Navigator.of(context).pop(); trackTime();}, child: Text("Track"),), //tracked close
-                TextButton(onPressed: Navigator.of(context).pop, child: Text("Close"),) //untracked close
-                ],
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // trackTime();
+                  },
+                  child: const Text("Track"),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Close"),
+                ),
+              ],
             ),
           ),
-        ),
-      );
-    }
+    );
   }
 
   String formatCountdown(Duration duration) {
@@ -140,7 +155,6 @@ class CountdownScreenState extends State<CountdownModeScreen> {
     final hours = twoDigits(duration.inHours.remainder(60));
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
-
     return "$hours:$minutes:$seconds";
   }
 
@@ -185,7 +199,25 @@ class CountdownScreenState extends State<CountdownModeScreen> {
             const SizedBox(height: 40),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              children: [Visibility(
+                visible: !_isRunning,
+                child:
+                DropdownButton<TrackerItem>(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                value: _selectedTracker,
+                hint: const Text("Select a tracker"),
+                items: _trackers.map((tracker) {
+                  return DropdownMenuItem<TrackerItem>(
+                    value: tracker,
+                    child: Text(tracker.name),
+                  );
+                }).toList(),
+                onChanged: (TrackerItem? selected) {
+                  setState(() {
+                    _selectedTracker = selected;
+                  });
+                },
+              ),),
                 Visibility(
                   visible: !_isRunning,
                   child: Slider(
@@ -193,7 +225,7 @@ class CountdownScreenState extends State<CountdownModeScreen> {
                     min: 1,
                     max: 3,
                     divisions: 2,
-                    label: _sliderValue.toString(),
+                    label: '${_sliderValue.toInt()} min',
                     onChanged: (double value) {
                       setState(() {
                         _sliderValue = value;
@@ -205,7 +237,11 @@ class CountdownScreenState extends State<CountdownModeScreen> {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: _isRunning ? stopCountdown : startCountdown,
+                  onPressed: _isLoading
+                      ? null
+                      : _isRunning
+                      ? stopCountdown
+                      : startCountdown,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(
@@ -224,9 +260,8 @@ class CountdownScreenState extends State<CountdownModeScreen> {
   }
 }
 
-//for countdown animation from https://apparencekit.dev/flutter-tips/draw-flutter-timer/ (kinda syza)
 class CountdownPainter extends CustomPainter {
-  final double progress; // 0.0 → 1.0
+  final double progress;
 
   CountdownPainter({required this.progress});
 
@@ -247,15 +282,12 @@ class CountdownPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    // Background circle
     canvas.drawCircle(center, radius, backgroundPaint);
 
-    // Progress arc
     final sweepAngle = 2 * 3.141592653589793 * progress;
-
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      -3.141592653589793 / 2, // start at top
+      -3.141592653589793 / 2,
       sweepAngle,
       false,
       progressPaint,
