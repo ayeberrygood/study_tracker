@@ -1,5 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:study_tracker/timer_menu.dart';
 
 class StopwatchModeScreen extends StatefulWidget {
   const StopwatchModeScreen({super.key});
@@ -9,6 +13,11 @@ class StopwatchModeScreen extends StatefulWidget {
 }
 
 class StopwatchModeScreenState extends State<StopwatchModeScreen> {
+  List<TrackerItem> _trackers = [];
+  TrackerItem? _selectedTracker;
+  bool _isLoading = true;
+  late final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
+
   static const Duration defaultDuration = Duration(minutes: 0, seconds: 0);
 
   final ValueNotifier<Duration> _durationNotifier = ValueNotifier<Duration>(
@@ -23,6 +32,21 @@ class StopwatchModeScreenState extends State<StopwatchModeScreen> {
     _timer?.cancel();
     _durationNotifier.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _prefs.getString('tracker_list').then((value) {
+      setState(() {
+        if (value != null) {
+          final List decoded = jsonDecode(value);
+          _trackers = decoded.map((e) => TrackerItem.fromJson(e)).toList();
+        }
+        _isLoading = false;
+      });
+    });
   }
 
   void startStopwatch() {
@@ -78,7 +102,28 @@ class StopwatchModeScreenState extends State<StopwatchModeScreen> {
     final milliseconds = twoDigits(
       duration.inMilliseconds.remainder(1000) ~/ 10,
     );
-    return "${duration.inHours.remainder(60)>=1 ? "$hours:" : ""}$minutes:$seconds.$milliseconds";
+    return "${duration.inHours.remainder(60) >= 1 ? "$hours:" : ""}$minutes:$seconds.$milliseconds";
+  }
+
+  void trackTime() async {
+    if (_isLoading) return;
+    if (_selectedTracker == null) return;
+
+    final index = _trackers.indexOf(_selectedTracker!);
+    if (index == -1) return;
+
+    setState(() {
+      _trackers[index] = TrackerItem(
+        name: _trackers[index].name,
+        duration: _trackers[index].duration - _durationNotifier.value.inMinutes,
+      );
+      _selectedTracker = null;
+    });
+
+    final String encoded = jsonEncode(
+      _trackers.map((t) => t.toJson()).toList(),
+    );
+    await _prefs.setString('tracker_list', encoded);
   }
 
   @override
@@ -113,24 +158,80 @@ class StopwatchModeScreenState extends State<StopwatchModeScreen> {
               },
             ),
             const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Column(
+              // mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: _isRunning ? pauseStopwatch : startStopwatch,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
+                Visibility(
+                  visible: !_isRunning,
+                  child: DropdownButton<TrackerItem>(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    value: _selectedTracker,
+                    hint: const Text(
+                      "Select a tracker",
+                      textAlign: TextAlign.center,
                     ),
+                    items: _trackers.map((tracker) {
+                      return DropdownMenuItem<TrackerItem>(
+                        value: tracker,
+                        child: Text(tracker.name),
+                      );
+                    }).toList(),
+                    onChanged: (TrackerItem? selected) {
+                      setState(() {
+                        _selectedTracker = selected;
+                      });
+                    },
                   ),
-                  label: Text(_isRunning ? "Pause" : "Start"),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _isRunning ? pauseStopwatch : startStopwatch,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
+                      label: Text(_isRunning ? "Pause" : "Start"),
+                    ),
+                    SizedBox(width: 8),
+                    Visibility(
+                      visible: !_isRunning,
+                      child: ElevatedButton(
+                        onPressed: trackTime,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
+                        child: Text("Track"),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                Visibility(
+                  visible: !_isRunning,
+                  child: ElevatedButton(
+                    onPressed: resetStopwatch,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                    ),
+                    child: Text("Reset"),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 30),
           ],
         ),
       ),

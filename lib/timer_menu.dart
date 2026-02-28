@@ -16,7 +16,7 @@ class TrackerWindow extends StatefulWidget {
 class TrackerWindowState extends State<TrackerWindow> {
   late final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
   final SharedPreferencesAsyncAndroidOptions options =
-  const SharedPreferencesAsyncAndroidOptions();
+      const SharedPreferencesAsyncAndroidOptions();
 
   int _counter = 0;
   final int _maxCounters = 8;
@@ -55,10 +55,10 @@ class TrackerWindowState extends State<TrackerWindow> {
   }
 
   void openTrackerDetail(int index) {
-    final nameController =
-    TextEditingController(text: _trackers[index].name);
-    final durationController =
-    TextEditingController(text: _trackers[index].duration.toString());
+    final nameController = TextEditingController(text: _trackers[index].name);
+    final durationController = TextEditingController(
+      text: _trackers[index].duration.toString(),
+    );
 
     showDialog(
       context: context,
@@ -73,7 +73,9 @@ class TrackerWindowState extends State<TrackerWindow> {
             ),
             TextField(
               controller: durationController,
-              decoration: const InputDecoration(labelText: 'Duration (minutes)'),
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+              ),
               keyboardType: TextInputType.number,
             ),
           ],
@@ -149,15 +151,7 @@ class TrackerWindowState extends State<TrackerWindow> {
             gridDelegate: CustomGridDelegate(dimension: 200.0),
             itemCount: _trackers.length,
             itemBuilder: (BuildContext context, int index) {
-              return GridTile(
-                header: GridTileBar(
-                  title: Text(
-                    _trackers[index].name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                child: Container(
+              return Container(
                   margin: const EdgeInsets.all(20.0),
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
@@ -165,17 +159,22 @@ class TrackerWindowState extends State<TrackerWindow> {
                     ),
                     color: const Color(0x323B2C7E),
                   ),
-                  child: TextButton(
-                    onPressed: () => openTrackerDetail(index),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: null,
-                        border: Border.all(color: Colors.white, width: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: null,
+                      border: Border.all(color: Colors.white, width: 10),
+                    ),
+                    child: TextButton.icon(
+                      onPressed: () => openTrackerDetail(index),
+                      label: Text(
+                        "${_trackers[index].name}: ${_trackers[index].duration} minutes remaining",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
-                ),
+
               );
             },
           ),
@@ -187,12 +186,15 @@ class TrackerWindowState extends State<TrackerWindow> {
               onPressed: _isLoading ? null : addTracker,
               child: const Text("Add"),
             ),
+            SizedBox(width: 10),
             TextButton(
               onPressed: _isLoading ? null : removeTracker,
               child: const Text("Remove"),
             ),
+            SizedBox(width: 10),
           ],
         ),
+        SizedBox(height: 10),
       ],
     );
   }
@@ -228,9 +230,9 @@ class CustomGridLayout extends SliverGridLayout {
     required this.dimension,
     required this.fullRowPeriod,
   }) : assert(crossAxisCount > 0),
-        assert(fullRowPeriod > 1),
-        loopLength = crossAxisCount * fullRowPeriod,
-        loopHeight = fullRowPeriod * dimension;
+       assert(fullRowPeriod > 1),
+       loopLength = crossAxisCount * fullRowPeriod,
+       loopHeight = fullRowPeriod * dimension;
 
   final int crossAxisCount;
   final double dimension;

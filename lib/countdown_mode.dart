@@ -13,14 +13,13 @@ class CountdownModeScreen extends StatefulWidget {
 }
 
 class CountdownScreenState extends State<CountdownModeScreen> {
-  List<TrackerItem> _trackers = []; // belongs here on the State, not the widget
+  List<TrackerItem> _trackers = [];
+  TrackerItem? _selectedTracker;
   bool _isLoading = true;
   late final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
   Timer? _timer;
   bool _isRunning = false;
   double _sliderValue = 1;
-
-  TrackerItem? _selectedTracker;
 
   static const Duration defaultDuration = Duration(minutes: 1, seconds: 0);
 
@@ -117,11 +116,31 @@ class CountdownScreenState extends State<CountdownModeScreen> {
     );
   }
 
-  void trackTime(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(title: Text(_trackers[index].name)),
-    );
+  String formatCountdown(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours.remainder(60));
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
+  }
+
+  void trackTime() async {
+    if (_isLoading) return;
+    if (_selectedTracker == null) return;
+
+    final index = _trackers.indexOf(_selectedTracker!);
+    if (index == -1) return;
+
+    setState(() {
+      _trackers[index] = TrackerItem(
+        name: _trackers[index].name,
+        duration: _trackers[index].duration - _initDuration.inMinutes,
+      );
+      _selectedTracker = null;
+    });
+
+    final String encoded = jsonEncode(_trackers.map((t) => t.toJson()).toList());
+    await _prefs.setString('tracker_list', encoded);
   }
 
   void countdownComplete() {
@@ -136,7 +155,7 @@ class CountdownScreenState extends State<CountdownModeScreen> {
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    // trackTime();
+                    trackTime();
                   },
                   child: const Text("Track"),
                 ),
@@ -148,14 +167,6 @@ class CountdownScreenState extends State<CountdownModeScreen> {
             ),
           ),
     );
-  }
-
-  String formatCountdown(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(duration.inHours.remainder(60));
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$hours:$minutes:$seconds";
   }
 
   @override
@@ -205,7 +216,7 @@ class CountdownScreenState extends State<CountdownModeScreen> {
                 DropdownButton<TrackerItem>(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 value: _selectedTracker,
-                hint: const Text("Select a tracker"),
+                hint: const Text("Select a tracker", textAlign: TextAlign.center,),
                 items: _trackers.map((tracker) {
                   return DropdownMenuItem<TrackerItem>(
                     value: tracker,
