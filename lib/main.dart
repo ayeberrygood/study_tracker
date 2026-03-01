@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:study_tracker/countdown_mode.dart';
 import 'package:study_tracker/stopwatch_mode.dart';
 import 'package:study_tracker/timer_menu.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const StudyTrackerApp());
@@ -14,7 +15,11 @@ class StudyTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: ThemeData.dark().copyWith(
+        textTheme: GoogleFonts.icelandTextTheme(
+          ThemeData.dark().textTheme,
+        ),
+      ),
       home: const MainScreen(),
     );
   }

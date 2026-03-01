@@ -63,59 +63,65 @@ class TrackerWindowState extends State<TrackerWindow> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Tracker'),
+        title: const Text('Tracker info:'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: const InputDecoration(labelText: 'Name:'),
             ),
             TextField(
               controller: durationController,
               decoration: const InputDecoration(
-                labelText: 'Duration (minutes)',
+                labelText: 'Duration (in minutes):',
               ),
               keyboardType: TextInputType.number,
             ),
           ],
         ),
         actions: [
-          // Delete button on the left
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () {
-              setState(() {
-                _trackers.removeAt(index);
-                _counter = _trackers.length;
-                _saveData();
-              });
-              Navigator.of(context).pop();
-            },
-            child: const Text('Delete'),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final newName = nameController.text.trim();
-              final newDuration = int.tryParse(durationController.text.trim());
-              if (newName.isEmpty || newDuration == null || newDuration <= 0) {
-                return; // don't save invalid input
-              }
-              setState(() {
-                _trackers[index] = TrackerItem(
-                  name: newName,
-                  duration: newDuration,
-                );
-                _saveData();
-              });
-              Navigator.of(context).pop();
-            },
-            child: const Text('Save'),
+          Row(
+            children: [
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                onPressed: () {
+                  setState(() {
+                    _trackers.removeAt(index);
+                    _counter = _trackers.length;
+                    _saveData();
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Delete'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final newName = nameController.text.trim();
+                  final newDuration = int.tryParse(
+                    durationController.text.trim(),
+                  );
+                  if (newName.isEmpty ||
+                      newDuration == null ||
+                      newDuration <= 0) {
+                    return;
+                  }
+                  setState(() {
+                    _trackers[index] = TrackerItem(
+                      name: newName,
+                      duration: newDuration,
+                    );
+                    _saveData();
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Save'),
+              ),
+            ],
           ),
         ],
       ),
@@ -152,29 +158,28 @@ class TrackerWindowState extends State<TrackerWindow> {
             itemCount: _trackers.length,
             itemBuilder: (BuildContext context, int index) {
               return Container(
-                  margin: const EdgeInsets.all(20.0),
-                  decoration: ShapeDecoration(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9.0),
-                    ),
-                    color: const Color(0x323B2C7E),
+                margin: const EdgeInsets.all(20.0),
+                decoration: ShapeDecoration(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(9.0),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: null,
-                      border: Border.all(color: Colors.white, width: 10),
-                    ),
-                    child: TextButton.icon(
-                      onPressed: () => openTrackerDetail(index),
-                      label: Text(
-                        "${_trackers[index].name}: ${_trackers[index].duration} minutes remaining",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white),
-                      ),
+                  color: const Color(0x323B2C7E),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: null,
+                    border: Border.all(color: Colors.white, width: 10),
+                  ),
+                  child: TextButton.icon(
+                    onPressed: () => openTrackerDetail(index),
+                    label: Text(
+                      "${_trackers[index].name}: ${_trackers[index].duration} minutes remaining",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
-
+                ),
               );
             },
           ),

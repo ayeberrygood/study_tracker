@@ -19,9 +19,9 @@ class CountdownScreenState extends State<CountdownModeScreen> {
   late final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
   Timer? _timer;
   bool _isRunning = false;
-  double _sliderValue = 1;
+  double _sliderValue = 30;
 
-  static const Duration defaultDuration = Duration(minutes: 1, seconds: 0);
+  static const Duration defaultDuration = Duration(minutes: 30, seconds: 0);
 
   Duration _initDuration = defaultDuration;
 
@@ -81,7 +81,7 @@ class CountdownScreenState extends State<CountdownModeScreen> {
     _timer?.cancel();
     setState(() {
       _isRunning = false;
-      _sliderValue = 1;
+      _sliderValue = 30;
       _initDuration = Duration(minutes: _sliderValue.toInt());
       _durationNotifier.value = _initDuration;
     });
@@ -233,9 +233,9 @@ class CountdownScreenState extends State<CountdownModeScreen> {
                   visible: !_isRunning,
                   child: Slider(
                     value: _sliderValue,
-                    min: 1,
-                    max: 3,
-                    divisions: 2,
+                    min: 30,
+                    max: 120,
+                    divisions: 3,
                     label: '${_sliderValue.toInt()} min',
                     onChanged: (double value) {
                       setState(() {
